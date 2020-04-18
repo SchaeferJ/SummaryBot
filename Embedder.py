@@ -11,6 +11,7 @@ class Embedder:
         self.emb = embedding_model
         self.ppr = preprocesser
         self._smoothing_factor = 10 ** -3
+        self.dimensionality = embedding_model.get_dimensionality()
 
     def set_smoothing_factor(self, sf):
         """
@@ -40,7 +41,7 @@ class Embedder:
         :param sentence: str, a sentence
         :return: ndarray, the sentence embedding
         """
-        sent_emb = np.zeros(self.emb.get_dimensionality)
+        sent_emb = np.zeros(self.dimensionality)
         for w in sentence:
             sent_emb += self.emb.embed(w)
         sent_emb /= len(sentence)
@@ -54,7 +55,7 @@ class Embedder:
         :return: ndarray, the sentence embedding
         """
         #   words = sentence.split()
-        sent_emb = np.zeros(self.emb.get_dimensionality)
+        sent_emb = np.zeros(self.dimensionality)
         for w in sentence:
             sent_emb += self._smoothing_factor / (self._smoothing_factor + word_freqs[w]) * self.emb.embed(w)
         sent_emb /= len(sentence)
@@ -69,7 +70,7 @@ if __name__ == "__main__":
     l = input("Enter a language: ")
     fte = FTEmbedder(l)
     spp = StandardPreprocessor(l)
-    emb = Embedder(embedder=fte, preprocesser=spp, sif=False)
+    emb = Embedder(embedding_model=fte, preprocesser=spp)
     w = input("Enter a sentence: ")
     print("The embedding of " + w + " is:")
-    print(emb.embed_sentence(w))
+    print(emb.embed_sentence(w, sif=False))

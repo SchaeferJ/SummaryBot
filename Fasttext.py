@@ -55,7 +55,7 @@ class FTEmbedder:
         """
         return self.emb_matrix[self.wordmapper[word]]
 
-    @property
+    #@property
     def get_dimensionality(self) -> int:
         """
         Returns the dimensionality of loaded embeddings
@@ -63,7 +63,7 @@ class FTEmbedder:
         """
         return self.dimensionality
 
-    @property
+    #@property
     def get_language(self) -> str:
         """
         Returns the language of the embedder
