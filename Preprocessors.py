@@ -16,7 +16,7 @@ class StandardPreprocessor:
         if self.stoprm:
             nltk.download('stopwords')
             try:
-                self.sw = set(stopwords.words(language))
+                self.sw = set(stopwords.words(language.lower()))
             except OSError:
                 puts_err("No stopwords for " + language + " found. Defaulting to english.")
                 self.sw = set(stopwords.words("english"))
@@ -29,4 +29,4 @@ class StandardPreprocessor:
                     tmp.append(w.translate(str.maketrans('', '', string.punctuation)).lower())
             else:
                 tmp.append(w.translate(str.maketrans('', '', string.punctuation)).lower())
-        return " ".join(tmp)
+        return tmp

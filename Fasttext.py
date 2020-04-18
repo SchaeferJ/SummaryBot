@@ -54,6 +54,13 @@ class FTEmbedder:
         """
         return self.emb_matrix[self.wordmapper[word]]
 
+    def get_dimensionality(self) -> int:
+        """
+        Returns the dimensionality of loaded embeddings
+        :return: int, the dimensionality
+        """
+        return self.dimensionality
+
     def __download_pretrained(self, fname: str, fdir: str):
         """
         Downloads pre-trained fastText vectors. Download-URL and target directory are defined in the configuration file.
@@ -100,6 +107,9 @@ class FTEmbedder:
 
         with open(self.mat_fdir, 'rb') as file:
             self.emb_matrix = pickle.load(file)
+
+        self.dimensionality = len(self.emb_matrix[0])
+
         if self._verbose:
             puts("Done.")
 
@@ -148,7 +158,7 @@ class FTEmbedder:
         vocab_size = int(lines[0].split()[0])
         self.dimensionality = int(lines[0].split()[1])
         if self._verbose:
-            puts("Found " + str(dimensionality) + "-dimensional vocabulary of size " + str(vocab_size) + ".")
+            puts("Found " + str(self.dimensionality) + "-dimensional vocabulary of size " + str(vocab_size) + ".")
             puts("Parsing vector file. Please stand by.")
         # Separate word from its embedding
         word_list = []
@@ -161,7 +171,7 @@ class FTEmbedder:
             vec = linelist[1:]
             vec = [float(i) for i in vec]
             # Some of the fastText files are known to be corrupted, skip faulty lines
-            if len(vec) != dimensionality:
+            if len(vec) != self.dimensionality:
                 puts_err("Error: Invalid vector for " + word + " Skipping")
             else:
                 word_list.append((word, vec))
@@ -174,7 +184,7 @@ class FTEmbedder:
             puts("Done")
         # Create dict mapping word to row of embedding matrix (default, i.e. OOV-word is 0)
         wordmapper = defaultdict(lambda: 0)
-        emb_matrix = np.zeros((len(word_list) + 1, dimensionality))
+        emb_matrix = np.zeros((len(word_list) + 1, self.dimensionality))
         if self._verbose:
             puts("Converting vectors to matrix. Please stand by.")
         i = 1
