@@ -1,5 +1,6 @@
 General:
   FasttextDirectory: ./fasttext
+  MatrixDirectory: ./processed_embs
 FasttextLink:
     url: https://dl.fbaipublicfiles.com/fasttext/vectors-aligned/
     prefix: wiki
