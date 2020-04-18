@@ -146,7 +146,7 @@ class FTEmbedder:
         # Determine vocabulary size (number of embeddings in file) and dimensionality (length of individual embedding
         # vectors)
         vocab_size = int(lines[0].split()[0])
-        dimensionality = int(lines[0].split()[1])
+        self.dimensionality = int(lines[0].split()[1])
         if self._verbose:
             puts("Found " + str(dimensionality) + "-dimensional vocabulary of size " + str(vocab_size) + ".")
             puts("Parsing vector file. Please stand by.")
