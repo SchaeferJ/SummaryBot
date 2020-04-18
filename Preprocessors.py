@@ -3,7 +3,7 @@
 import nltk
 import string
 from nltk.corpus import stopwords
-from clint.textui import puts, puts_err, prompt, colored
+from clint.textui import puts_err
 
 
 class StandardPreprocessor:

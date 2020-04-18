@@ -20,7 +20,7 @@ class FTEmbedder:
     """ Provides a standarized interface for fastText word embeddings. Instances of his class are meant
     to be passed to instances of the more general Embedder-Class."""
 
-    def __init__(self, language, verbose=True, configfile="config.yml"):
+    def __init__(self, language: str, verbose=True, configfile="config.yml"):
         """
         :param language: str, Language, in which the words will be embedded
         :param verbose: boolean, Prints more expressive status messages when True
@@ -35,6 +35,7 @@ class FTEmbedder:
         self._ft_dir = self._gencnf["FasttextDirectory"]
         self._pe_dir = self._gencnf["MatrixDirectory"]
         self._verbose = verbose
+        self.language = language
 
         if not os.path.isdir(self._pe_dir):
             puts("The matrix directory you've configured does not yet exist.")
@@ -54,12 +55,21 @@ class FTEmbedder:
         """
         return self.emb_matrix[self.wordmapper[word]]
 
+    @property
     def get_dimensionality(self) -> int:
         """
         Returns the dimensionality of loaded embeddings
         :return: int, the dimensionality
         """
         return self.dimensionality
+
+    @property
+    def get_language(self) -> str:
+        """
+        Returns the language of the embedder
+        :return: str, the language
+        """
+        return self.language
 
     def __download_pretrained(self, fname: str, fdir: str):
         """

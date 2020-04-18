@@ -7,11 +7,10 @@ import numpy as np
 class Embedder:
     """Sentence embedder"""
 
-    def __init__(self, embedder, preprocesser, sif=True):
-        self.emb = embedder
+    def __init__(self, embedding_model, preprocesser):
+        self.emb = embedding_model
         self.ppr = preprocesser
         self._smoothing_factor = 10 ** -3
-        self.sif = sif
 
     def set_smoothing_factor(self, sf):
         """
@@ -21,15 +20,16 @@ class Embedder:
         """
         self._smoothing_factor = sf
 
-    def embed_sentence(self, sentence: str, word_freqs=None):
+    def embed_sentence(self, sentence: str, sif=False,  word_freqs=None):
         """
         Returns a sentence embedding using the specified aggregation mehod
         :param sentence: str, a sentence
+        :param sif: boolean, apply smooth inverse frequencies when True
         :param word_freqs: dict, {word:document frequency}, required for SIF aggregation only
         :return: ndarray, the sentence embedding
         """
         sp = self.ppr.preprocess(sentence)
-        if self.sif:
+        if sif:
             return self._sif_sent_emb(sp, word_freqs)
         else:
             return self._mean_sent_emb(sp)
@@ -40,7 +40,7 @@ class Embedder:
         :param sentence: str, a sentence
         :return: ndarray, the sentence embedding
         """
-        sent_emb = np.zeros(self.emb.get_dimensionality())
+        sent_emb = np.zeros(self.emb.get_dimensionality)
         for w in sentence:
             sent_emb += self.emb.embed(w)
         sent_emb /= len(sentence)
@@ -54,7 +54,7 @@ class Embedder:
         :return: ndarray, the sentence embedding
         """
         #   words = sentence.split()
-        sent_emb = np.zeros(self.emb.get_dimensionality())
+        sent_emb = np.zeros(self.emb.get_dimensionality)
         for w in sentence:
             sent_emb += self._smoothing_factor / (self._smoothing_factor + word_freqs[w]) * self.emb.embed(w)
         sent_emb /= len(sentence)
