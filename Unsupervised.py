@@ -1,5 +1,7 @@
 #!/usr/local/bin/python3
-
+"""
+Unsupervised Methods for extractive summarization
+"""
 from nltk.tokenize import sent_tokenize
 from collections import Counter
 from sklearn.decomposition import TruncatedSVD
@@ -10,8 +12,15 @@ from Embedder import Embedder
 
 
 class kmeansSummarizer:
-
+    """ Generates extractive summaries of texts by performing k-means clustering. For a summary of length x,
+    x clusters are computed and the centroids of each cluster are added to the summary """
     def __init__(self, embedding_model, preprocessor, seed=None):
+        """
+        Creates new k-Means summarizer object
+        :param embedding_model: The embedding model to be used (e.g. FTEmbedder)
+        :param preprocessor: The preprocessor to be used
+        :param seed: optional, seed for random number generators
+        """
         self.emb = Embedder(embedding_model, preprocessor)
         self.ppr = preprocessor
         self.language = embedding_model.get_language()
@@ -19,15 +28,27 @@ class kmeansSummarizer:
         # Seed for k-Means Clustering. Can be adjusted manually
         self.seed = seed
 
-    def summarize(self, text, sum_len, sif=True, npc=3, svd_iterations=7):
+    def summarize(self, text: str, sum_len, sif=True, npc=3, svd_iterations=7) -> str:
+        """
+        Computes and returns an extractive summary of a text using k-Means clustering
+        :param text: str, the text to be summarized
+        :param sum_len: int/float, length of summary. Int>1: Number of sentences, float<1: fraction of original length
+        :param sif: boolean, applies smooth inverse frequency aggregation when True
+        :param npc: int, optional: number of principal components for truncated SVD of SIF
+        :param svd_iterations: int, optional: number of iterations for truncated SVD of SIF
+        :return: str, the summary
+        """
+        # Split text into sentences
         tok_text = sent_tokenize(text, self.language.lower())
+        # If length is smaller than 1, compute the number of sentences the fraction corresponds to
         if sum_len < 1:
             sum_len = round(sum_len * len(tok_text))
         else:
             sum_len = int(sum_len)
         doc_matrix = np.zeros((len(tok_text), self.dimensionality))
-        prp_text = self.ppr.preprocess(sentence=text)
         if sif:
+            # Split text into individual words and count their frequencies for SIF
+            prp_text = self.ppr.preprocess(sentence=text)
             word_freqs = Counter(prp_text)
             for i, s in enumerate(tok_text):
                 doc_matrix[i] = self.emb.embed_sentence(s, sif=True, word_freqs=word_freqs)
