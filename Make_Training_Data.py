@@ -13,7 +13,7 @@ from collections import Counter, defaultdict
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import MinMaxScaler
 import pickle
-from clint.textui import puts, puts_err, prompt, colored
+from clint.textui import puts
 
 M, N = 5, 5
 
