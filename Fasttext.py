@@ -192,19 +192,22 @@ class FTEmbedder:
         oov_vec = np.array([vec for _, vec in word_list]).mean(axis=0)
         if self._verbose:
             puts("Done")
-        # Create dict mapping word to row of embedding matrix (default, i.e. OOV-word is 0)
-        wordmapper = defaultdict(lambda: 0)
-        emb_matrix = np.zeros((len(word_list) + 1, self.dimensionality))
+        # Create dict mapping word to row of embedding matrix (default, i.e. OOV-word is 1, EOF is 0)
+        wordmapper = defaultdict(lambda: 1)
+        wordmapper["<L>"] = 0
+        wordmapper["<R>"] = 0
+        # Iniitalize Embedding Matrix: 1 row per word + 1 row for OOV and one for EOL-Token
+        emb_matrix = np.zeros((len(word_list) + 2, self.dimensionality))
         if self._verbose:
             puts("Converting vectors to matrix. Please stand by.")
         i = 1
         # Load words and embeddings to dict/matrix
         for word_tup in tqdm.tqdm(word_list):
             word, embedding = word_tup
-            wordmapper[word] = i
-            emb_matrix[i] = embedding
+            wordmapper[word] = i+1
+            emb_matrix[i+1] = embedding
             i += 1
-        emb_matrix[0] = oov_vec
+        emb_matrix[1] = oov_vec
         if self._verbose:
             puts("Done.")
             puts("Saving matrix.")
