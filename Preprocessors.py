@@ -21,7 +21,7 @@ class StandardPreprocessor:
                 puts_err("No stopwords for " + language + " found. Defaulting to english.")
                 self.sw = set(stopwords.words("english"))
 
-    def preprocess(self, sentence):
+    def preprocess(self, sentence, join_list=False):
         tmp = []
         for w in sentence.split():
             if self.stoprm:
@@ -29,4 +29,18 @@ class StandardPreprocessor:
                     tmp.append(w.translate(str.maketrans('', '', string.punctuation)).lower())
             else:
                 tmp.append(w.translate(str.maketrans('', '', string.punctuation)).lower())
+        if join_list:
+            tmp = " ".join(tmp)
         return tmp
+
+class PlaceboPreprocessor:
+    """"Can be passed to Embedder if no preprocessing is required"""
+
+    def __init__(self, language, remove_stopwords=True, verbose=True):
+        self.lan = language
+        self.stoprm = remove_stopwords
+
+    def preprocess(self, sentence, join_list=False):
+        if join_list:
+            sentence = " ".join(sentence)
+        return sentence
