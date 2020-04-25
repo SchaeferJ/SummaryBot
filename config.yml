@@ -50,3 +50,6 @@ AvailabeLangs:
     Ukrainian: uk
     Vietnamese: vi
     Chinese: zh
+Supervised:
+    DataDir: ./training_data
+    ModelDir: ./supervised_models
