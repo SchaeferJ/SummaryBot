@@ -117,7 +117,10 @@ class CRSumPreprocessor:
                 row[self.labels[j]] = prepro_text[j + i]
 
         sentence_df["len"] = sent_len
-        sentence_df["pos"] = sentence_df.index / (len(sentence_df.index) - 1)
+        if len(sentence_df.index) > 0:
+            sentence_df["pos"] = sentence_df.index+1 / (len(sentence_df.index))
+        else:
+            sentence_df["pos"] = 0
         sentence_df["df"] = sent_docfreq
         sentence_df["tf"] = sent_termfreq
         sentence_df["Language"] = self.lan

@@ -237,10 +237,10 @@ train_df.len = len_scaler.fit_transform(train_df.len.values.reshape(-1, 1))
 test_df.len = len_scaler.transform(test_df.len.values.reshape(-1, 1))
 
 
-with open("./training_data/len-scaler.pkl", 'wb') as file:
+with open("./training_data2/len-scaler.pkl", 'wb') as file:
     pickle.dump(len_scaler, file)
 
-train_df.to_pickle('./training_data/train_set.pkl')
-test_df.to_pickle('./training_data/test_set.pkl')
-article_df[['ID', 'summary_words']].to_pickle("./training_data/summaries.pkl")
+train_df.to_pickle('./training_data2/train_set.pkl')
+test_df.to_pickle('./training_data2/test_set.pkl')
+article_df[['ID', 'summary_words']].to_pickle("./training_data2/summaries.pkl")
 puts("Finished!")

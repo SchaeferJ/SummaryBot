@@ -17,6 +17,7 @@ import pickle
 from multiprocessing import Pool
 import numpy as np
 import pandas as pd
+import tqdm
 from collections import defaultdict
 from sklearn.metrics import mean_squared_error
 from keras.preprocessing.sequence import pad_sequences
@@ -34,7 +35,7 @@ class CRSum:
 
         self.M = M
         self.N = N
-        self.labels = ["stm" + str(m + 1) for m in reversed(range(M))] + ["st"] + ["stn" + str(m + 1) for m in range(M)]
+        self.labels = ["stm" + str(m + 1) for m in reversed(range(M))] + ["st"] + ["stn" + str(n + 1) for n in range(N)]
         self.verbose = verbose
 
         with open(configfile, "r") as infile:
@@ -52,6 +53,7 @@ class CRSum:
         self.train_df = None
         self.test_df = None
         self.embsLoaded = False
+        self.scaler = None
 
     def loadTrainingData(self):
         if self.verbose:
@@ -65,7 +67,13 @@ class CRSum:
 
         if self.verbose:
             puts("Loading test data...")
+
+        if self.scaler is None:
+            with open(os.path.join(self.modeldir,"scaler.pkl", 'rb')) as file:
+                self.scaler = pickle.load(file)
+
         self.test_df = pd.read_pickle(os.path.join(self.datadir, "test_set.pkl"))
+        self.test_df[['len', 'df', 'tf']] = self.scaler.transform(self.test_df[['len', 'df', 'tf']])
         self.present_langs = list(self.test_df.Language.unique())
         if self.verbose:
             puts("Done.")
@@ -112,10 +120,10 @@ class CRSum:
 
     def wordToIndex(self, data):
         rowlang = data.Language
-        if len(data.iloc[0]) > 0:
-            return [self.lang_wordmappers[rowlang][word] for word in data.iloc[0]]
-        else:
-            return []
+        #if len(data.iloc[0]) > 0:
+        return [self.lang_wordmappers[rowlang][word] for word in data.iloc[0]]
+        #else:
+        #    return []
 
     def process_text(self, data):
         return pad_sequences(data.apply(self.wordToIndex, axis=1), maxlen=self.pad_len, padding='post',
@@ -124,6 +132,8 @@ class CRSum:
     def get_inputs(self, df):
         inputs = {}
         for label in self.labels:
+            if self.verbose:
+                puts("Processing "+label)
             inputs[label] = self.process_text(df[[label, "Language"]])
         inputs['sf'] = np.array(df[['len', 'pos', 'tf', 'df']])
         return inputs
@@ -197,7 +207,7 @@ class CRSum:
         main = BatchNormalization()(main)
         for _ in range(dense_depth):
             main = Dropout(dropout)(Dense(dense_dim, activation='relu')(main))
-        output = Dense(1)(main)
+        output = Dense(1, activation='tanh')(main)
 
         model = Model(inputs=inputs, outputs=output)
         model.compile(optimizer='adam', loss='mse')
@@ -225,7 +235,8 @@ class CRSum:
 
         X_train = self.get_inputs(self.train_df)
         Y_train = self.train_df.cosine_sim.values.reshape(-1, 1)
-
+        #return X_train, Y_train
+        #"""
         if (self.verbose):
             puts("Done.")
             puts("Building model...")
@@ -235,6 +246,7 @@ class CRSum:
         checkpoint_path = os.path.join(self.modeldir, "epoch{epoch:03d}-{loss:.8f}.h5")
         callbacks = [ModelCheckpoint(checkpoint_path, verbose=1, monitor='loss', save_best_only=True, mode='auto')]
         self.model.fit(X_train, Y_train, batch_size=batch_size, epochs=epochs, callbacks=callbacks)
+        #"""
 
     def eval(self):
         if self.model is None:
@@ -266,6 +278,12 @@ class CRSum:
     def predict(self, data):
         if not self.embsLoaded:
             self.loadEmbeddings()
+        if self.scaler is None:
+            with open(os.path.join(self.modeldir,"scaler.pkl", 'rb')) as file:
+                self.scaler = pickle.load(file)
+
+        data[['len', 'df', 'tf']] = self.scaler.transform(data[['len', 'df', 'tf']])
+
         X_data = self.get_inputs(data)
         data['cosine_sim_pred'] = self.model.predict(X_data, batch_size=2048)
         return data
