@@ -11,7 +11,7 @@ import numpy as np
 from Embedder import Embedder
 
 
-class kmeansSummarizer:
+class kMeans:
     """ Generates extractive summaries of texts by performing k-means clustering. For a summary of length x,
     x clusters are computed and the centroids of each cluster are added to the summary """
     def __init__(self, embedding_model, preprocessor, seed=None):
@@ -88,7 +88,7 @@ if __name__ == "__main__":
     sentcount = float(input("How long should the summary be?\nNumber of sentences or fraction of total: "))
     fte = FTEmbedder(l)
     spp = StandardPreprocessor(l)
-    summarizer = kmeansSummarizer(embedding_model=fte, preprocessor=spp)
+    summarizer = kMeans(embedding_model=fte, preprocessor=spp)
     use_sif = prompt.yn("Do you want to use smooth inverse frequencies?")
     summary = summarizer.summarize(longtext, sentcount, sif=use_sif)
     puts("Summary:")

@@ -256,7 +256,7 @@ class CRSum:
             puts("Done.")
             puts("Computing loss...")
 
-        self.test_df['cosine_sim_pred'] = self.model.predict(X_test, batch_size=2048)
+        self.test_df['rank'] = self.model.predict(X_test, batch_size=2048)
         self.test_loss = mean_squared_error(self.test_df.cosine_sim, self.test_df.cosine_sim_pred)
         puts("Mean Squared Error: " + str(self.test_loss))
 
@@ -286,7 +286,7 @@ if __name__ == "__main__":
     csm.loadModel("epoch020-0.00223836.h5")
     csm.loadTestData()
     pred = csm.predict(pred_df)
-    highest_sim = pred.nlargest(6, columns=['cosine_sim_pred']).index
+    highest_sim = pred.nlargest(6, columns=['rank']).index
     highest_sim = [int(i) for i in highest_sim]
     highest_sim.sort()
     summary_list = [tok_text[int(i)] for i in highest_sim]
