@@ -14,7 +14,7 @@ import sys
 import dill
 import pickle
 
-import swifter
+from multiprocessing import Pool
 import numpy as np
 import pandas as pd
 from collections import defaultdict
@@ -116,7 +116,7 @@ class CRSum:
             return []
 
     def process_text(self, data):
-        return pad_sequences(data.swifter.apply(self.wordToIndex, axis=1), maxlen=self.pad_len, padding='post',
+        return pad_sequences(data.apply(self.wordToIndex, axis=1), maxlen=self.pad_len, padding='post',
                              truncating='post')
 
     def get_inputs(self, df):
