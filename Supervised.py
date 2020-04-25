@@ -264,7 +264,8 @@ class CRSum:
         self.model = load_model(os.path.join(self.modeldir, filename))
 
     def predict(self, data):
-
+        if not self.embsLoaded:
+            self.loadEmbeddings()
         X_data = self.get_inputs(data)
         data['cosine_sim_pred'] = self.model.predict(X_data, batch_size=2048)
         return data
