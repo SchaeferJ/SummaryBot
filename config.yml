@@ -53,3 +53,4 @@ AvailabeLangs:
 Supervised:
     DataDir: ./training_data
     ModelDir: ./supervised_models
+    PadLength: 45

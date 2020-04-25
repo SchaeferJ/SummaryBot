@@ -1,3 +1,5 @@
+#!/usr/local/bin/python3
+
 import os
 
 # Disable GPU Acceleration as Model will most likely not fit into memory. If you are running a Super-High-End GPU
@@ -10,15 +12,15 @@ if DISABLE_GPUS:
 import yaml
 import sys
 import dill
-import codecs
 import pickle
+
+import swifter
 import numpy as np
 import pandas as pd
-import tqdm
 from collections import defaultdict
 from sklearn.metrics import mean_squared_error
 from keras.preprocessing.sequence import pad_sequences
-from clint.textui import puts_err, puts
+from clint.textui import puts_err, puts, prompt, colored
 
 from keras.models import Model, load_model
 from keras.layers import Input, Dense, Embedding, Reshape, Conv1D, MaxPooling1D, LSTM
@@ -38,24 +40,33 @@ class CRSum:
             cfg = yaml.load(infile, Loader=yaml.SafeLoader)
         self.datadir = cfg["Supervised"]["DataDir"]
         self.modeldir = cfg["Supervised"]["ModelDir"]
+        self.pad_len = cfg["Supervised"]["PadLength"]
         self.embeddingdir = cfg["General"]["MatrixDirectory"]
 
         # Initialize Variables for later use
         self.present_langs = None
         self.master_matrix = np.zeros((0, 300))
         self.lang_wordmappers = {}
-        self.pad_len = None
         self.model = None
+        self.train_df = None
+        self.test_df = None
+        self.embsLoaded = False
 
     def loadTrainingData(self):
-
+        if self.verbose:
+            puts("Loading training data...")
         self.train_df = pd.read_pickle(os.path.join(self.datadir, "train_set.pkl"))
-        self.present_langs = set(list(self.train_df.Language.unique()) + list(self.test_df.Language.unique()))
-        self.pad_len = int(np.percentile(self.train_df.st.apply(len).values, 99.7) - 2)
+        self.present_langs = list(self.train_df.Language.unique())
+        if self.verbose:
+            puts("Done.")
 
     def loadTestData(self):
 
+        if self.verbose:
+            puts("Loading test data...")
         self.test_df = pd.read_pickle(os.path.join(self.datadir, "test_set.pkl"))
+        if self.verbose:
+            puts("Done.")
 
     def loadEmbeddings(self):
 
@@ -73,15 +84,15 @@ class CRSum:
             if self.verbose:
                 puts(l)
 
-            with open(os.path.join(self.embeddingdir, "wordmapper_" + l + ".dill", 'rb')) as file:
+            with open(os.path.join(self.embeddingdir, "wordmapper_" + l + ".dill"), 'rb') as file:
                 self.lang_wordmappers[l] = dill.load(file)
 
-            with open(os.path.join(self.embeddingdir, "emb_matrix_" + l + ".pck", 'rb')) as file:
+            with open(os.path.join(self.embeddingdir, "emb_matrix_" + l + ".pck"), 'rb') as file:
                 lang_matrices[l] = pickle.load(file)
 
-            if self.verbose:
-                puts("Done.")
-                puts("Concatenating matrices:")
+        if self.verbose:
+            puts("Done.")
+            puts("Concatenating matrices:")
 
         offset = 0
         for l in self.present_langs:
@@ -92,6 +103,9 @@ class CRSum:
                 self.lang_wordmappers[l][key] += offset
             offset += len(lang_matrices[l])
 
+        if self.verbose:
+            puts("Done.")
+        self.embsLoaded = True
         del lang_matrices
 
     def wordToIndex(self, data):
@@ -102,7 +116,7 @@ class CRSum:
             return []
 
     def process_text(self, data):
-        return pad_sequences(data.apply(self.wordToIndex, axis=1), maxlen=self.pad_len, padding='post',
+        return pad_sequences(data.swifter.apply(self.wordToIndex, axis=1), maxlen=self.pad_len, padding='post',
                              truncating='post')
 
     def get_inputs(self, df):
@@ -188,10 +202,28 @@ class CRSum:
         return model
 
     def train(self, epochs=20, batch_size=1024):
+
+        if not os.path.isdir(self.modeldir):
+            puts("The model directory you've configured does not yet exist.")
+            if prompt.yn("Do you want to create the directory " + colored.green(self.modeldir) + " now?"):
+                os.mkdir(self.modeldir)
+            else:
+                puts_err("Please define an existing ModelDir in config.yaml. Bye!")
+                sys.exit()
+
+        if self.train_df is None:
+            self.loadTrainingData()
+
+        if not self.embsLoaded:
+            if self.verbose:
+                self.loadEmbeddings()
+
         if self.verbose:
             puts("Preparing training data...")
+
         X_train = self.get_inputs(self.train_df)
         Y_train = self.train_df.cosine_sim.values.reshape(-1, 1)
+
 
         if(self.verbose):
             puts("Done.")
@@ -204,10 +236,22 @@ class CRSum:
         self.model.fit(X_train, Y_train, batch_size=batch_size, epochs=epochs, callbacks=callbacks)
 
     def eval(self):
+        if self.model is None:
+            puts_err("Train model or load weights before evaluation!")
+            sys.exit()
+
         if self.verbose:
             puts("Preparing test data...")
-        X_train = self.get_inputs(self.train_df)
-        Y_train = self.train_df.cosine_sim.values.reshape(-1, 1)
+
+        X_test = self.get_inputs(self.test_df)
+        Y_test = self.test_df.cosine_sim.values.reshape(-1, 1)
 
         if(self.verbose):
             puts("Done.")
+            puts("Computing loss...")
+
+        self.test_df['cosine_sim_pred'] = self.model.predict(X_test, batch_size=2048)
+        self.test_loss = mean_squared_error(self.test_df.cosine_sim, self.test_df.cosine_sim_pred)
+
+    def loadModel(self, filename):
+        self.model = load_model(os.path.join(self.modeldir, filename))
