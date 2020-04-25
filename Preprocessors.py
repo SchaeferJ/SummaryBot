@@ -58,10 +58,11 @@ class PlaceboPreprocessor:
 
 class CRSumPreprocessor:
 
-    def __init__(self, language, M=5, N=5, remove_stopwords=True):
+    def __init__(self, language, M=5, N=5, return_sentence=True, remove_stopwords=True):
         self.M = M
         self.N = N
         self.lan = language
+        self.resent = return_sentence
         self.stoprm = remove_stopwords
         self.labels = ["stm" + str(m + 1) for m in reversed(range(M))] + ["st"] + ["stn" + str(n + 1) for n in range(N)]
         # (Down)load stopwords for nltk
@@ -119,5 +120,8 @@ class CRSumPreprocessor:
         sentence_df["pos"] = sentence_df.index / (len(sentence_df.index) - 1)
         sentence_df["df"] = sent_docfreq
         sentence_df["tf"] = sent_termfreq
-        sentence_df["Language"] = self.lan.lower()
-        return sentence_df
+        sentence_df["Language"] = self.lan
+        if self.resent:
+            return sentence_df, tok_text
+        else:
+            return sentence_df

@@ -27,6 +27,7 @@ from keras.layers import Input, Dense, Embedding, Reshape, Conv1D, MaxPooling1D,
 from keras.layers import Dot, Multiply, Concatenate, Activation, Flatten, BatchNormalization, Dropout
 from keras.callbacks import ModelCheckpoint
 
+
 class CRSum:
 
     def __init__(self, M, N, verbose=True, configfile="config.yml"):
@@ -225,8 +226,7 @@ class CRSum:
         X_train = self.get_inputs(self.train_df)
         Y_train = self.train_df.cosine_sim.values.reshape(-1, 1)
 
-
-        if(self.verbose):
+        if (self.verbose):
             puts("Done.")
             puts("Building model...")
         self.model = self.makeModel()
@@ -252,13 +252,13 @@ class CRSum:
 
         X_test = self.get_inputs(self.test_df)
 
-        if(self.verbose):
+        if (self.verbose):
             puts("Done.")
             puts("Computing loss...")
 
         self.test_df['cosine_sim_pred'] = self.model.predict(X_test, batch_size=2048)
         self.test_loss = mean_squared_error(self.test_df.cosine_sim, self.test_df.cosine_sim_pred)
-        puts("Mean Squared Error: "+str(self.test_loss))
+        puts("Mean Squared Error: " + str(self.test_loss))
 
     def loadModel(self, filename):
         self.model = load_model(os.path.join(self.modeldir, filename))
@@ -269,3 +269,29 @@ class CRSum:
         X_data = self.get_inputs(data)
         data['cosine_sim_pred'] = self.model.predict(X_data, batch_size=2048)
         return data
+
+
+from Preprocessors import CRSumPreprocessor
+from clint.textui import puts, prompt, colored
+
+if __name__ == "__main__":
+    textfile = input("Enter the path to the text file you want to summarize: ")
+    with open(textfile, 'r') as file:
+        longtext = file.read().replace('\n', ' ')
+    l = input("Which language is the text? ")
+    sentcount = float(input("How long should the summary be?\nNumber of sentences or fraction of total: "))
+    pp = CRSumPreprocessor(l, 5, 5)
+    pred_df, tok_text = pp.preprocess(longtext)
+    csm = CRSum(5, 5)
+    csm.loadModel("epoch020-0.00223836.h5")
+    csm.loadTestData()
+    pred = csm.predict(pred_df)
+    highest_sim = pred.nlargest(6, columns=['cosine_sim_pred']).index
+    highest_sim = [int(i) for i in highest_sim]
+    highest_sim.sort()
+    summary_list = [tok_text[int(i)] for i in highest_sim]
+    summary = " ".join(summary_list)
+    puts("Summary:")
+    puts(colored.blue(summary))
+    puts("Original text:")
+    puts(colored.magenta(longtext))
