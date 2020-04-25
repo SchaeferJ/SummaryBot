@@ -65,13 +65,14 @@ class CRSum:
         if self.verbose:
             puts("Loading test data...")
         self.test_df = pd.read_pickle(os.path.join(self.datadir, "test_set.pkl"))
+        self.present_langs = list(self.test_df.Language.unique())
         if self.verbose:
             puts("Done.")
 
     def loadEmbeddings(self):
 
         if self.present_langs is None:
-            puts_err("ERROR: Training data has to be loaded prior to the embeddings!")
+            puts_err("ERROR: Data has to be loaded prior to the embeddings!")
             sys.exit()
 
         lang_matrices = {}
@@ -240,11 +241,16 @@ class CRSum:
             puts_err("Train model or load weights before evaluation!")
             sys.exit()
 
+        if self.test_df is None:
+            self.loadTestData()
+
+        if not self.embsLoaded:
+            self.loadEmbeddings()
+
         if self.verbose:
             puts("Preparing test data...")
 
         X_test = self.get_inputs(self.test_df)
-        Y_test = self.test_df.cosine_sim.values.reshape(-1, 1)
 
         if(self.verbose):
             puts("Done.")
@@ -252,6 +258,13 @@ class CRSum:
 
         self.test_df['cosine_sim_pred'] = self.model.predict(X_test, batch_size=2048)
         self.test_loss = mean_squared_error(self.test_df.cosine_sim, self.test_df.cosine_sim_pred)
+        puts("Mean Squared Error: "+str(self.test_loss))
 
     def loadModel(self, filename):
         self.model = load_model(os.path.join(self.modeldir, filename))
+
+    def predict(self, data):
+
+        X_data = self.get_inputs(data)
+        data['cosine_sim_pred'] = self.model.predict(X_data, batch_size=2048)
+        return data
