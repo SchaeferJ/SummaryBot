@@ -55,6 +55,13 @@ class FTEmbedder:
         """
         return self.emb_matrix[self.wordmapper[word]]
 
+    def get_matrix_directory(self):
+        """
+        Returns the directory in which the processed Embeddings are stored
+        :return:
+        """
+        return self._pe_dir
+
     #@property
     def get_dimensionality(self) -> int:
         """

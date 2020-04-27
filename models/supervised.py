@@ -14,10 +14,8 @@ import sys
 import dill
 import pickle
 
-from multiprocessing import Pool
 import numpy as np
 import pandas as pd
-import tqdm
 from collections import defaultdict
 from sklearn.metrics import mean_squared_error
 from keras.preprocessing.sequence import pad_sequences
@@ -31,7 +29,7 @@ from keras.callbacks import ModelCheckpoint
 
 class CRSum:
 
-    def __init__(self, M, N, verbose=True, configfile="config.yml"):
+    def __init__(self, embedding_model, preprocessor, M=5, N=5, verbose=True, configfile="config.yml"):
 
         self.M = M
         self.N = N
@@ -44,6 +42,9 @@ class CRSum:
         self.modeldir = cfg["Supervised"]["ModelDir"]
         self.pad_len = cfg["Supervised"]["PadLength"]
         self.embeddingdir = cfg["General"]["MatrixDirectory"]
+        #self.embeddingdir = embedding_model.get_matrix_directory()
+        self.prepro = preprocessor
+        self.lang_prepos = None
 
         # Initialize Variables for later use
         self.present_langs = None
@@ -69,8 +70,7 @@ class CRSum:
             puts("Loading test data...")
 
         if self.scaler is None:
-            with open(os.path.join(self.modeldir,"scaler.pkl", 'rb')) as file:
-                self.scaler = pickle.load(file)
+            self._load_scaler()
 
         self.test_df = pd.read_pickle(os.path.join(self.datadir, "test_set.pkl"))
         self.test_df[['len', 'df', 'tf']] = self.scaler.transform(self.test_df[['len', 'df', 'tf']])
@@ -80,43 +80,75 @@ class CRSum:
 
     def loadEmbeddings(self):
 
-        if self.present_langs is None:
-            puts_err("ERROR: Data has to be loaded prior to the embeddings!")
-            sys.exit()
-
-        lang_matrices = {}
-
-        if self.verbose:
-            puts("Loading embeddings and mappers of present languages:")
-
-        for l in self.present_langs:
+        if os.path.isfile(os.path.join(self.datadir, "mastermapper.dill")) and os.path.isfile(os.path.join(self.datadir, "mastermatrix.pkl")):
 
             if self.verbose:
-                puts(l)
+                puts("Loading prebuilt embedding matrices.")
 
-            with open(os.path.join(self.embeddingdir, "wordmapper_" + l + ".dill"), 'rb') as file:
-                self.lang_wordmappers[l] = dill.load(file)
+            with open(os.path.join(self.datadir, "mastermapper.dill"), 'rb') as file:
+                self.lang_wordmappers = dill.load(file)
 
-            with open(os.path.join(self.embeddingdir, "emb_matrix_" + l + ".pck"), 'rb') as file:
-                lang_matrices[l] = pickle.load(file)
+            with open(os.path.join(self.datadir, "mastermatrix.pkl"), 'rb') as file:
+                self.master_matrix = pickle.load(file)
 
-        if self.verbose:
-            puts("Done.")
-            puts("Concatenating matrices:")
+            self.present_langs = self.lang_wordmappers.keys()
 
-        offset = 0
-        for l in self.present_langs:
             if self.verbose:
-                puts(l)
-            self.master_matrix = np.concatenate((self.master_matrix, lang_matrices[l]), axis=0)
-            for key in self.lang_wordmappers[l]:
-                self.lang_wordmappers[l][key] += offset
-            offset += len(lang_matrices[l])
+                puts("Done.")
+        else:
 
-        if self.verbose:
-            puts("Done.")
+            if self.verbose:
+                puts("No prebuilt matrices found. Initializing master matrix.")
+
+            if self.present_langs is None:
+                puts_err("ERROR: Cannot initialize master matrix without data! Please load training data first")
+                sys.exit()
+
+            lang_matrices = {}
+
+            if self.verbose:
+                puts("Loading embeddings and mappers of present languages:")
+
+            for l in self.present_langs:
+
+                if self.verbose:
+                    puts(l)
+
+                with open(os.path.join(self.embeddingdir, "wordmapper_" + l + ".dill"), 'rb') as file:
+                    self.lang_wordmappers[l] = dill.load(file)
+
+                with open(os.path.join(self.embeddingdir, "emb_matrix_" + l + ".pck"), 'rb') as file:
+                    lang_matrices[l] = pickle.load(file)
+
+            if self.verbose:
+                puts("Done.")
+                puts("Concatenating matrices:")
+
+            offset = 0
+            for l in self.present_langs:
+                if self.verbose:
+                    puts(l)
+                self.master_matrix = np.concatenate((self.master_matrix, lang_matrices[l]), axis=0)
+                for key in self.lang_wordmappers[l]:
+                    self.lang_wordmappers[l][key] += offset
+                offset += len(lang_matrices[l])
+
+            if self.verbose:
+                puts("Done.")
+            del lang_matrices
+
+            if prompt.yn("Successfully built master matrix. Do you want to save the matrix for future use?"):
+                with open(os.path.join(self.datadir, "mastermapper.dill"), 'wb') as file:
+                    dill.dump(self.lang_wordmappers, file)
+
+                with open(os.path.join(self.datadir, "mastermatrix.pkl"), 'wb') as file:
+                    pickle.dump(self.master_matrix, file, protocol=4)
+
         self.embsLoaded = True
-        del lang_matrices
+
+    def _load_scaler(self):
+        with open(os.path.join(self.datadir,"scaler.pkl"), 'rb') as file:
+            self.scaler = pickle.load(file)
 
     def wordToIndex(self, data):
         rowlang = data.Language
@@ -235,8 +267,7 @@ class CRSum:
 
         X_train = self.get_inputs(self.train_df)
         Y_train = self.train_df.cosine_sim.values.reshape(-1, 1)
-        #return X_train, Y_train
-        #"""
+
         if (self.verbose):
             puts("Done.")
             puts("Building model...")
@@ -268,25 +299,56 @@ class CRSum:
             puts("Done.")
             puts("Computing loss...")
 
-        self.test_df['rank'] = self.model.predict(X_test, batch_size=2048)
-        self.test_loss = mean_squared_error(self.test_df.cosine_sim, self.test_df.cosine_sim_pred)
+        self.test_df['pred_rank'] = self.model.predict(X_test, batch_size=2048)
+        self.test_loss = mean_squared_error(self.test_df.cosine_sim, self.test_df.pred_rank)
         puts("Mean Squared Error: " + str(self.test_loss))
 
-    def loadModel(self, filename):
+    def loadWeights(self, filename):
         self.model = load_model(os.path.join(self.modeldir, filename))
 
     def predict(self, data):
         if not self.embsLoaded:
             self.loadEmbeddings()
         if self.scaler is None:
-            with open(os.path.join(self.modeldir,"scaler.pkl", 'rb')) as file:
-                self.scaler = pickle.load(file)
+            self._load_scaler()
 
         data[['len', 'df', 'tf']] = self.scaler.transform(data[['len', 'df', 'tf']])
 
         X_data = self.get_inputs(data)
-        data['cosine_sim_pred'] = self.model.predict(X_data, batch_size=2048)
+        data['pred_rank'] = self.model.predict(X_data, batch_size=2048)
         return data
+
+    def summarize(self, text, language, sum_len):
+
+        if self.model is None:
+            puts_err("No weights loaded. Please load weigths first by calling method loadWeights()")
+            sys.exit()
+
+        if not self.embsLoaded:
+            self.loadEmbeddings()
+
+        if language not in self.present_langs:
+            puts_err("Unsupported language. Currently supported: "+" ".join(self.present_langs))
+            sys.exit()
+
+        if self.lang_prepos is None:
+            self.lang_prepos = {}
+            for l in self.present_langs:
+                self.lang_prepos[l] = self.prepro(l, self.M, self.N)
+
+        pred_df, tok_text = self.lang_prepos[language].preprocess(text)
+        # If length is smaller than 1, compute the number of sentences the fraction corresponds to
+        if sum_len < 1:
+            sum_len = round(sum_len * len(tok_text))
+        else:
+            sum_len = int(sum_len)
+
+        pred = self.predict(pred_df)
+        highest_sim = pred.nlargest(sum_len, columns=['pred_rank']).index
+        highest_sim = [int(i) for i in highest_sim]
+        highest_sim.sort()
+        summary = [tok_text[int(i)] for i in highest_sim]
+        return " ".join(summary)
 
 
 from Preprocessors import CRSumPreprocessor
@@ -298,17 +360,9 @@ if __name__ == "__main__":
         longtext = file.read().replace('\n', ' ')
     l = input("Which language is the text? ")
     sentcount = float(input("How long should the summary be?\nNumber of sentences or fraction of total: "))
-    pp = CRSumPreprocessor(l, 5, 5)
-    pred_df, tok_text = pp.preprocess(longtext)
-    csm = CRSum(5, 5)
-    csm.loadModel("epoch020-0.00223836.h5")
-    csm.loadTestData()
-    pred = csm.predict(pred_df)
-    highest_sim = pred.nlargest(6, columns=['rank']).index
-    highest_sim = [int(i) for i in highest_sim]
-    highest_sim.sort()
-    summary_list = [tok_text[int(i)] for i in highest_sim]
-    summary = " ".join(summary_list)
+    csm = CRSum(embedding_model=None, preprocessor=CRSumPreprocessor, M=5, N=5)
+    csm.loadWeights("epoch020-0.00124268.h5")
+    summary = csm.summarize(longtext, l, 0.5)
     puts("Summary:")
     puts(colored.blue(summary))
     puts("Original text:")
