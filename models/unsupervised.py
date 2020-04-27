@@ -89,9 +89,8 @@ class kMeans:
             idx = np.where(kmeans.labels_ == j)[0]
             avg.append(np.mean(idx))
         closest, _ = pairwise_distances_argmin_min(kmeans.cluster_centers_, doc_matrix)
-        ordering = sorted(range(sum_len), key=lambda k: avg[k])
-        return ' '.join([tok_text[closest[ordering[idx]]] for idx in ordering])
-
+        closest.sort()
+        return ' '.join([tok_text[idx] for idx in closest])
 
 # Minimal working example
 from Fasttext import FTEmbedder
