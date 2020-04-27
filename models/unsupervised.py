@@ -21,23 +21,41 @@ class kMeans:
         :param preprocessor: The preprocessor to be used
         :param seed: optional, seed for random number generators
         """
-        self.emb = Embedder(embedding_model, preprocessor)
-        self.ppr = preprocessor
-        self.language = embedding_model.get_language()
-        self.dimensionality = embedding_model.get_dimensionality()
+
+        self.embedding_model = embedding_model
+        self.preprocessor = preprocessor
+
+        self.emb = None
+        self.ppr = None
+        self.language = None
+        self.embedding_instance = None
+        self.dimensionality = None
         # Seed for k-Means Clustering. Can be adjusted manually
         self.seed = seed
 
-    def summarize(self, text: str, sum_len, sif=True, npc=3, svd_iterations=7) -> str:
+    def summarize(self, text: str, language:str, sum_len, sif=True, npc=3, svd_iterations=7) -> str:
         """
         Computes and returns an extractive summary of a text using k-Means clustering
         :param text: str, the text to be summarized
+        :param language: str, the language of the text
         :param sum_len: int/float, length of summary. Int>1: Number of sentences, float<1: fraction of original length
         :param sif: boolean, applies smooth inverse frequency aggregation when True
         :param npc: int, optional: number of principal components for truncated SVD of SIF
         :param svd_iterations: int, optional: number of iterations for truncated SVD of SIF
         :return: str, the summary
         """
+
+        if self.language is None or self.language != language:
+            self.embedding_instance = self.embedding_model(language)
+            self.ppr = self.preprocessor(language)
+            self.dimensionality = self.embedding_instance.get_dimensionality()
+            self.emb = Embedder(self.embedding_instance, self.ppr)
+            self.language = language
+
+
+
+
+
         # Split text into sentences
         tok_text = sent_tokenize(text, self.language.lower())
         # If length is smaller than 1, compute the number of sentences the fraction corresponds to
@@ -63,7 +81,7 @@ class kMeans:
             for i, s in enumerate(tok_text):
                 doc_matrix[i] = self.emb.embed_sentence(s, sif=False)
 
-        print(doc_matrix.shape)
+        #print(doc_matrix.shape)
         kmeans = KMeans(n_clusters=sum_len, random_state=self.seed)
         kmeans = kmeans.fit(doc_matrix)
         avg = []
@@ -86,11 +104,9 @@ if __name__ == "__main__":
         longtext = file.read().replace('\n', ' ')
     l = input("Which language is the text? ")
     sentcount = float(input("How long should the summary be?\nNumber of sentences or fraction of total: "))
-    fte = FTEmbedder(l)
-    spp = StandardPreprocessor(l)
-    summarizer = kMeans(embedding_model=fte, preprocessor=spp)
+    summarizer = kMeans(FTEmbedder, StandardPreprocessor)
     use_sif = prompt.yn("Do you want to use smooth inverse frequencies?")
-    summary = summarizer.summarize(longtext, sentcount, sif=use_sif)
+    summary = summarizer.summarize(longtext, l, sentcount, sif=use_sif)
     puts("Summary:")
     puts(colored.blue(summary))
     puts("Original text:")
