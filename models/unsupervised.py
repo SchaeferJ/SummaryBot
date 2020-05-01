@@ -45,16 +45,21 @@ class kMeans:
         :return: str, the summary
         """
 
-        if self.language is None or self.language != language:
+        if self.embedding_instance is None:
             self.embedding_instance = self.embedding_model(language)
-            self.ppr = self.preprocessor(language)
             self.dimensionality = self.embedding_instance.get_dimensionality()
-            self.emb = Embedder(self.embedding_instance, self.ppr)
+            if self.embedding_instance.requires_prepro:
+                self.ppr = self.preprocessor(language)
+                self.emb = Embedder(self.embedding_instance, self.ppr)
             self.language = language
 
-
-
-
+        if self.language != language:
+            if self.embedding_instance.language_dependent:
+                self.embedding_instance = self.embedding_model(language)
+            if self.embedding_instance.requires_prepro:
+                self.ppr = self.preprocessor(language)
+                self.emb = Embedder(self.embedding_instance, self.ppr)
+            self.language = language
 
         # Split text into sentences
         tok_text = sent_tokenize(text, self.language.lower())
@@ -63,24 +68,27 @@ class kMeans:
             sum_len = round(sum_len * len(tok_text))
         else:
             sum_len = int(sum_len)
-        doc_matrix = np.zeros((len(tok_text), self.dimensionality))
-        if sif:
-            # Split text into individual words and count their frequencies for SIF
-            prp_text = self.ppr.preprocess(sentence=text)
-            word_freqs = Counter(prp_text)
-            for i, s in enumerate(tok_text):
-                doc_matrix[i] = self.emb.embed_sentence(s, sif=True, word_freqs=word_freqs)
-            svd = TruncatedSVD(n_components=npc, n_iter=svd_iterations, random_state=self.seed)
-            svd.fit(doc_matrix)
-            u = svd.components_
-            if npc == 1:
-                doc_matrix = doc_matrix - doc_matrix.dot(u.transpose()) * u
-            else:
-                doc_matrix = doc_matrix - doc_matrix.dot(u.transpose()).dot(u)
-        else:
-            for i, s in enumerate(tok_text):
-                doc_matrix[i] = self.emb.embed_sentence(s, sif=False)
 
+        if self.embedding_instance.requires_prepro:
+            doc_matrix = np.zeros((len(tok_text), self.dimensionality))
+            if sif:
+                # Split text into individual words and count their frequencies for SIF
+                prp_text = self.ppr.preprocess(sentence=text)
+                word_freqs = Counter(prp_text)
+                for i, s in enumerate(tok_text):
+                    doc_matrix[i] = self.emb.embed_sentence(s, sif=True, word_freqs=word_freqs)
+                svd = TruncatedSVD(n_components=npc, n_iter=svd_iterations, random_state=self.seed)
+                svd.fit(doc_matrix)
+                u = svd.components_
+                if npc == 1:
+                    doc_matrix = doc_matrix - doc_matrix.dot(u.transpose()) * u
+                else:
+                    doc_matrix = doc_matrix - doc_matrix.dot(u.transpose()).dot(u)
+            else:
+                for i, s in enumerate(tok_text):
+                    doc_matrix[i] = self.emb.embed_sentence(s, sif=False)
+        else:
+            doc_matrix = self.embedding_instance.embed(tok_text)
         #print(doc_matrix.shape)
         kmeans = KMeans(n_clusters=sum_len, random_state=self.seed)
         kmeans = kmeans.fit(doc_matrix)

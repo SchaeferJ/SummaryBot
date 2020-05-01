@@ -36,6 +36,8 @@ class FTEmbedder:
         self._pe_dir = self._gencnf["MatrixDirectory"]
         self._verbose = verbose
         self.language = language
+        self.language_dependent = True
+        self.requires_prepro = True
 
         if not os.path.isdir(self._pe_dir):
             puts("The matrix directory you've configured does not yet exist.")

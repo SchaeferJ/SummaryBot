@@ -1,6 +1,7 @@
 General:
   FasttextDirectory: ./fasttext
   MatrixDirectory: ./processed_embs
+USELink: https://tfhub.dev/google/universal-sentence-encoder-multilingual-large/3
 FasttextLink:
     url: https://dl.fbaipublicfiles.com/fasttext/vectors-aligned/
     prefix: wiki
