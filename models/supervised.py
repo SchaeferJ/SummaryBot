@@ -18,13 +18,13 @@ import numpy as np
 import pandas as pd
 from collections import defaultdict
 from sklearn.metrics import mean_squared_error
-from keras.preprocessing.sequence import pad_sequences
+from tensorflow.keras.preprocessing.sequence import pad_sequences
 from clint.textui import puts_err, puts, prompt, colored
 
-from keras.models import Model, load_model
-from keras.layers import Input, Dense, Embedding, Reshape, Conv1D, MaxPooling1D, LSTM
-from keras.layers import Dot, Multiply, Concatenate, Activation, Flatten, BatchNormalization, Dropout
-from keras.callbacks import ModelCheckpoint
+from tensorflow.keras.models import Model, load_model
+from tensorflow.keras.layers import Input, Dense, Embedding, Reshape, Conv1D, MaxPooling1D, LSTM
+from tensorflow.keras.layers import Dot, Multiply, Concatenate, Activation, Flatten, BatchNormalization, Dropout
+from tensorflow.keras.callbacks import ModelCheckpoint
 
 
 class CRSum:
@@ -175,13 +175,13 @@ class CRSum:
         embedding_layer = Embedding(input_dim=self.master_matrix.shape[0], output_dim=self.master_matrix.shape[1],
                                     weights=[self.master_matrix], trainable=False)
 
-        def get_att_sentence(name, conv_layer, st):
-            inp = Input(shape=(self.pad_len,), name=name)
+        def get_att_sentence(name, conv_layer, st, pdl):
+            inp = Input(shape=(pdl,), name=name)
             emb = embedding_layer(inp)
             conv = conv_layer(emb)
             weight = Activation('softmax')(Dot(axes=2, normalize=True)([conv, st]))
             att = Multiply()([weight, conv])
-            mp = MaxPooling1D(self.pad_len - 1)(att)
+            mp = MaxPooling1D(pdl - 1)(att)
             return inp, mp
 
         inputs = []
@@ -201,14 +201,14 @@ class CRSum:
         pc = []
         for i in reversed(range(1, self.M + 1)):
             name = 'stm' + str(i)
-            inp, sen = get_att_sentence(name, conv_layer, st)
+            inp, sen = get_att_sentence(name, conv_layer, st, self.pad_len)
             inputs.append(inp)
             pc.append(sen)
 
         fc = []
         for i in range(1, self.N + 1):
             name = 'stn' + str(i)
-            inp, sen = get_att_sentence(name, conv_layer, st)
+            inp, sen = get_att_sentence(name, conv_layer, st, self.pad_len)
             inputs.append(inp)
             fc.append(sen)
 
@@ -275,7 +275,7 @@ class CRSum:
         if self.verbose:
             puts("Done.")
         checkpoint_path = os.path.join(self.modeldir, "epoch{epoch:03d}-{loss:.8f}.h5")
-        callbacks = [ModelCheckpoint(checkpoint_path, verbose=1, monitor='loss', save_best_only=True, mode='auto')]
+        callbacks = ModelCheckpoint(checkpoint_path, verbose=1, monitor='loss', save_best_only=True, mode='auto')
         self.model.fit(X_train, Y_train, batch_size=batch_size, epochs=epochs, callbacks=callbacks)
         #"""
 
