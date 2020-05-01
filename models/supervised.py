@@ -275,7 +275,7 @@ class CRSum:
         if self.verbose:
             puts("Done.")
         checkpoint_path = os.path.join(self.modeldir, "epoch{epoch:03d}-{loss:.8f}.h5")
-        callbacks = ModelCheckpoint(checkpoint_path, verbose=1, monitor='loss', save_best_only=True, mode='auto')
+        callbacks = [ModelCheckpoint(checkpoint_path, verbose=1, monitor='loss', save_best_only=True, mode='auto')]
         self.model.fit(X_train, Y_train, batch_size=batch_size, epochs=epochs, callbacks=callbacks)
         #"""
 
