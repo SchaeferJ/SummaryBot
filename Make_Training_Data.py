@@ -1,6 +1,5 @@
 #!/usr/local/bin/python3
 
-import mysql.connector as mysql
 import pandas as pd
 from nltk.tokenize import sent_tokenize
 from Preprocessors import *
@@ -15,34 +14,9 @@ import pickle
 from clint.textui import puts
 
 
-host = input("Please enter database hostname:\n")
-dbname = input("Please enter database name:\n")
-uname = input("Please enter database username:\n")
-pw = input("Please enter database password:\n")
 
-puts("Connecting to Database")
-db = mysql.connect(
-    host=host,
-    user=uname,
-    passwd=pw,
-    database=dbname
-)
-puts("Done.")
-
-
-cursor = db.cursor()
-query = "SELECT Publisher, Language, Lead, Body FROM Article JOIN Publisher ON Article.Publisher = Publisher.Name WHERE Lead <>''"
-puts("Retrieving data")
-cursor.execute(query)
-result = cursor.fetchall()
-# Fetch Data
-article_list = []
-for r in result:
-    article_list.append(r)
-db.close()
-puts("Done.")
-article_df = pd.DataFrame(article_list, columns=["Publisher", "Language", "Lead", "Body"])
-
+article_df = pd.read_csv("Raw_Data.csv")
+article_df = article_df.dropna()
 article_df = article_df.reset_index()
 article_df['ID'] = article_df.index
 
@@ -53,6 +27,13 @@ for i in range(random.SystemRandom().randint(1, 10)):
     random.shuffle(testsplit)
 
 article_df["isTrain"] = testsplit
+
+puts("Saving unprocessed Articles for Evaluation")
+rawtrain = article_df[article_df.isTrain == True]
+rawtest = article_df[article_df.isTrain == False]
+
+rawtrain.to_pickle('./training_data/train_raw.pkl')
+rawtest.to_pickle('./training_data/test_raw.pkl')
 
 puts("Initializing language-specific components")
 lang_pprs = {}
