@@ -63,7 +63,7 @@ for ind, row in tqdm.tqdm(article_df.iterrows(), total=len(article_df.index), un
     prepro_frames.append(tmp)
 
 processed_articles = pd.concat(prepro_frames)
-processed_articles = processed_articles.reset_index()
+processed_articles = processed_articles.dropna()
 processed_articles = processed_articles[["ID", "sen", "stm5", "stm4", "stm3", "stm2", "stm1", "st", "stn1", "stn2", "stn3", "stn4", "stn5", "len", "pos", "tf", "df", "cosine_sim", "Language", "isTrain"]]
 train_df = processed_articles[processed_articles.isTrain == True]
 test_df = processed_articles[processed_articles.isTrain == False]

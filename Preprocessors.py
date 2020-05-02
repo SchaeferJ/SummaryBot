@@ -89,8 +89,12 @@ class CRSumPreprocessor:
                     avg_tf += tfd[w]
                     avg_df += dfd[w]
                     tmp.append(w.translate(str.maketrans('', '', string.punctuation)).lower())
-            avg_tf /= len(tmp)
-            avg_df /= len(tmp)
+            if len(tmp)>0:
+                avg_tf /= len(tmp)
+                avg_df /= len(tmp)
+            else:
+                avg_tf = None
+                avg_df = None
             if jlist:
                 tmp = " ".join(tmp)
             return ["<L>"] + tmp + ["<R>"], avg_tf, avg_df, len(tmp)
