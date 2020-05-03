@@ -9,7 +9,12 @@ class USEEmbedder:
     to be passed to instances of the more general Embedder-Class."""
 
     def __init__(self, language: str, verbose=True, configfile="config.yml"):
-
+        """
+        Creates new USEEmbedder instance
+        :param language: str, currently unused, for compatibility puposes only
+        :param verbose: boolean, prints status messages when True
+        :param configfile: str, name of configuration file
+        """
         with open(configfile, "r") as infile:
             cfg = yaml.load(infile, Loader=yaml.SafeLoader)
 
@@ -21,7 +26,16 @@ class USEEmbedder:
         self.requires_prepro = False
 
     def embed(self, word: str):
+        """
+        Inputs a string (word, sentence or paragraph) and returns a numpy array with the 512-dimensional embedding
+        :param word: str, the text (word, sentence or paragraph) to embed
+        :return: ndarray, the embedding
+        """
         return self.tfmodel(word).numpy()
 
     def get_dimensionality(self) -> int:
+        """
+        Getter method for embedding dimensionality
+        :return: int, the dimensionality (512)
+        """
         return self.dimensionality

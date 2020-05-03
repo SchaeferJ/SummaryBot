@@ -1,5 +1,20 @@
 #!/usr/local/bin/python3
 
+"""
+Generates training and test data for CRSum. Expects a CSV-File named Raw_Data.csv that
+contains the following three columns:
+Lead: The ground-truth summary
+Body: The full-length text
+Language: The language of the example
+
+Generates a 80-20 Train-Test-Split and saves 4 Files:
+
+train/test_raw.pkl - Unprocessed data split into test and train set (for unsupervised models)
+train/test_set.pkl - Processed data split into test and train set (for supervised models)
+
+Automatically downloads and processes aligned fastText vectors if they are not yet present
+"""
+
 import pandas as pd
 from nltk.tokenize import sent_tokenize
 from Preprocessors import *
