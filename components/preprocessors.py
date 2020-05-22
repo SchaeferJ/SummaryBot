@@ -1,17 +1,12 @@
 #!/usr/local/bin/python3
 
-import nltk
 import string
-from nltk.corpus import stopwords
-from clint.textui import puts_err
+from collections import Counter, defaultdict
 
 import nltk
-import numpy as np
-import string
 import pandas as pd
-from collections import Counter, defaultdict
-from nltk.corpus import stopwords
 from clint.textui import puts_err
+from nltk.corpus import stopwords
 from nltk.tokenize import sent_tokenize
 
 

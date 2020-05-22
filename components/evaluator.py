@@ -1,16 +1,18 @@
-from UniversalSentenceEncoder import USEEmbedder
 from sklearn.metrics.pairwise import manhattan_distances, cosine_similarity, euclidean_distances
+
+from encoders.use import USEEmbedder
+
 
 class USEevaluator:
 
     def __init__(self, metric="cosine"):
         self.embedder = USEEmbedder("NA")
 
-        if metric=="cosine":
+        if metric == "cosine":
             self.distmet = cosine_similarity
-        elif metric=="euclidean":
+        elif metric == "euclidean":
             self.distmet = euclidean_distances
-        elif metric=="l1":
+        elif metric == "l1":
             self.distmet = manhattan_distances
 
     def compare(self, text1:str, text2:str) -> float:

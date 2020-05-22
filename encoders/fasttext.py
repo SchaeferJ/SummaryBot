@@ -2,18 +2,18 @@
 """
 fastText embedder (and preprocesser) for Embedding-Instances
 """
-import yaml
-import requests
-import os
-import sys
-import dill
-import tqdm
 import codecs
+import os
 import pickle
-import numpy as np
-
-from clint.textui import puts, puts_err, prompt, colored
+import sys
 from collections import defaultdict
+
+import dill
+import numpy as np
+import requests
+import tqdm
+import yaml
+from clint.textui import puts, puts_err, prompt, colored
 
 
 class FTEmbedder:

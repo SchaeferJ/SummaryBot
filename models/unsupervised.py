@@ -2,18 +2,21 @@
 """
 Unsupervised Methods for extractive summarization
 """
-from nltk.tokenize import sent_tokenize
 from collections import Counter
-from sklearn.decomposition import TruncatedSVD
-from sklearn.cluster import KMeans
-from sklearn.metrics import pairwise_distances_argmin_min
+
 import numpy as np
-from Embedder import Embedder
+from nltk.tokenize import sent_tokenize
+from sklearn.cluster import KMeans
+from sklearn.decomposition import TruncatedSVD
+from sklearn.metrics import pairwise_distances_argmin_min
+
+from components.embedder import Embedder
 
 
 class kMeans:
     """ Generates extractive summaries of texts by performing k-means clustering. For a summary of length x,
     x clusters are computed and the centroids of each cluster are added to the summary """
+
     def __init__(self, embedding_model, preprocessor, seed=None):
         """
         Creates new k-Means summarizer object
@@ -100,9 +103,10 @@ class kMeans:
         closest.sort()
         return ' '.join([tok_text[idx] for idx in closest])
 
+
 # Minimal working example
-from Fasttext import FTEmbedder
-from Preprocessors import StandardPreprocessor
+from encoders.fasttext import FTEmbedder
+from components.preprocessors import StandardPreprocessor
 from clint.textui import puts, prompt, colored
 
 if __name__ == "__main__":

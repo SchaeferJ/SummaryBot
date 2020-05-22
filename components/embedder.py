@@ -63,8 +63,8 @@ class Embedder:
 
 
 # Minimal working example
-from Fasttext import FTEmbedder
-from Preprocessors import StandardPreprocessor
+from encoders.fasttext import FTEmbedder
+from components.preprocessors import StandardPreprocessor
 
 if __name__ == "__main__":
     l = input("Enter a language: ")

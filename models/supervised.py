@@ -19,13 +19,12 @@ import pickle
 
 import numpy as np
 import pandas as pd
-from collections import defaultdict
 from sklearn.metrics import mean_squared_error
 from tensorflow.keras.preprocessing.sequence import pad_sequences
-from clint.textui import puts_err, puts, prompt, colored
+from clint.textui import puts_err
 
 from tensorflow.keras.models import Model, load_model
-from tensorflow.keras.layers import Input, Dense, Embedding, Reshape, Conv1D, MaxPooling1D, LSTM
+from tensorflow.keras.layers import Input, Dense, Embedding, Conv1D, MaxPooling1D, LSTM
 from tensorflow.keras.layers import Dot, Multiply, Concatenate, Activation, Flatten, BatchNormalization, Dropout
 from tensorflow.keras.callbacks import ModelCheckpoint
 
@@ -306,7 +305,7 @@ class CRSum:
         main = BatchNormalization()(main)
         for _ in range(dense_depth):
             main = Dropout(dropout)(Dense(dense_dim, activation='relu')(main))
-        output = Dense(1, activation='tanh')(main)
+        output = Dense(1, activation='relu')(main)
 
         model = Model(inputs=inputs, outputs=output)
         model.compile(optimizer='adam', loss='mse')
@@ -447,7 +446,7 @@ class CRSum:
 # Minimal working example
 
 if __name__ == "__main__":
-    from Preprocessors import CRSumPreprocessor
+    from components.preprocessors import CRSumPreprocessor
     from clint.textui import puts, prompt, colored
 
     textfile = input("Enter the path to the text file you want to summarize: ")

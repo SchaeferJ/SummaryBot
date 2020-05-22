@@ -15,20 +15,18 @@ train/test_set.pkl - Processed data split into test and train set (for supervise
 Automatically downloads and processes aligned fastText vectors if they are not yet present
 """
 
-import pandas as pd
-from nltk.tokenize import sent_tokenize
-from Preprocessors import *
-from Fasttext import FTEmbedder
-from Embedder import Embedder
-import tqdm
+import pickle
 import random
-from collections import Counter, defaultdict
+
+import tqdm
+from clint.textui import puts
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import MinMaxScaler
-import pickle
-from clint.textui import puts
-from UniversalSentenceEncoder import USEEmbedder
-from sklearn.metrics.pairwise import cosine_similarity
+
+from components.embedder import Embedder
+from components.preprocessors import *
+from encoders.fasttext import FTEmbedder
+from encoders.use import USEEmbedder
 
 puts("Initializing Universal Sentence Encoder for Calculating Cosine Similarity.")
 embedder = USEEmbedder("NA")
@@ -72,14 +70,10 @@ for ind, row in tqdm.tqdm(article_df.iterrows(), total=len(article_df.index), un
 
     tmp, sents = lang_pprs[row.Language].preprocess(row.Body)
     sum_embedding = embedder.embed(row.Lead)
-    #sum_nsw = [w for w in row.Lead.split() if not w in lang_sw[row.Language]]
-    #sum_embedding = lang_embedders[row.Language].embed_sentence(sum_nsw, sif=False)
+
     for s in sents:
         sent_embedding = embedder.embed(s)
         cosine_sims.append(cosine_similarity(sum_embedding, sent_embedding)[0][0])
-        #sent_nsw = [w for w in s.split() if not w in lang_sw[row.Language]]
-        #sent_embedding = lang_embedders[row.Language].embed_sentence(sent_nsw, sif=False)
-        #cosine_sims.append(cosine_similarity(sum_embedding.reshape(1, 300), sent_embedding.reshape(1, 300))[0][0])
     tmp["sen"] = tmp.index
     tmp["ID"] = ind
     tmp["isTrain"] = row.isTrain
